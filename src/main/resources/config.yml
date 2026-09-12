@@ -1,0 +1,70 @@
+# =========================================================
+#  Push - configuration
+#  Les arenes sont normalement creees/editees via les
+#  commandes en jeu (/p ...). Ce fichier est ecrit et
+#  relu automatiquement par le plugin.
+# =========================================================
+
+# Points necessaires pour gagner une partie
+points-to-win: 5
+
+# Temps de recharge de l'arc, en secondes (0 = aucun rechargement)
+bow-cooldown-seconds: 3
+
+# Delai (secondes) avant teleportation de retour apres la fin d'une partie
+end-delay-seconds: 5
+
+# Couleurs des equipes dans l'ordre : equipe 1, equipe 2, equipe 3, equipe 4
+# Valeurs possibles : n'importe quelle ChatColor Bukkit valide (LIGHT_PURPLE, DARK_PURPLE,
+# BLUE, DARK_BLUE, RED, GREEN, YELLOW, AQUA, GOLD, ...). Attention : Bukkit n'a PAS de
+# ChatColor "PINK" ni "MAGENTA" (contrairement aux vitres teintees/laines) ; LIGHT_PURPLE
+# est l'equivalent texte le plus proche du magenta/rose.
+team-colors:
+  - DARK_PURPLE
+  - LIGHT_PURPLE
+  - BLUE
+  - DARK_BLUE
+
+team-display-names:
+  - "Magenta"
+  - "Rose"
+  - "Violet"
+  - "Bleu fonce"
+
+# Sidebar affiche sur le cote de l'ecran (codes couleur avec &)
+scoreboard:
+  # Titre affiche en haut du sidebar
+  title: "&8[&b&lHERO&d&lCRAFT&8] &d&lPUSH"
+  # Derniere ligne du sidebar (adresse du serveur, site...)
+  footer: "&dplay.herocraft.fr"
+  # Frequence de rafraichissement, en ticks (20 ticks = 1 seconde)
+  update-ticks: 20
+
+# Temps d'arret (secondes) entre chaque manche, apres qu'un point soit marque
+round-resume-seconds: 3
+
+# Messages rapides ("Bien joue !", "Tu es trop fort !"...) utilisables a la place du
+# kit pendant la pause entre deux manches et a l'ecran de victoire
+quick-chat:
+  enabled: true
+
+# Mode spectateur
+spectator:
+  # Un admin peut desactiver le mode spectateur arene par arene avec /p spectatormode
+  allow-flight: true
+  night-vision: true
+  see-other-spectators: true
+
+# Systeme de niveau : XP gagnee en jouant, qui deverrouille des cosmetiques
+# exclusifs a Push (effets d'elimination).
+levels:
+  xp-per-kill: 15
+  xp-per-push: 20
+  xp-per-damage-point: 0.1
+  xp-per-win: 100
+  xp-per-minute-played: 2
+
+# Hologrammes de classement (voir /p holo)
+holograms: {}
+
+arenas: {}

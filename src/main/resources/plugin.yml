@@ -1,0 +1,27 @@
+name: Push
+version: '1.0.4'
+main: com.push.plugin.PushPlugin
+api-version: '1.21'
+author: HeroCraft
+description: "Plugin Paper/Spigot 1.21.x : mini-jeu PvP par equipes en arene avec vide, lobby d'attente, countdown de debut, kit fixe (epee + arc INFINITY + armure teintee), pause entre les manches, sidebar en temps reel, mode spectateur, leaderboard, statistiques, systeme de niveaux et cosmetiques d'elimination. Multi-arene, 2 a 4 equipes, configurable entierement en jeu via /p ..."
+
+commands:
+  p:
+    description: Commande principale du plugin Push
+    usage: /p <create|delete|setspawn|delspawn|spawns|setlobby|setspectator|lobbyzone|setvoid|setpos1|setpos2|setteams|setteamsize|setminplayers|list|info|join|leave|spectate|unspectate|stats|gui|leaderboard|forcestart|reload>
+    permission: push.use
+    permission-message: "§cTu n'as pas la permission d'utiliser cette commande."
+
+permissions:
+  push.admin:
+    description: Permet de configurer les arenes et de forcer le demarrage des parties
+    default: op
+  push.play:
+    description: Permet de rejoindre une arene
+    default: true
+  push.spectate:
+    description: Permet d'observer une partie en mode spectateur
+    default: true
+  push.use:
+    description: Permet d'utiliser les commandes de base (/p list, info, join, leave, stats)
+    default: true
