@@ -134,11 +134,63 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GREEN + "Point de lobby defini pour " + arena.getName() + ".");
     }
 
+    /**
+     * Resout un identifiant d'equipe saisi par un admin : accepte soit le nom de couleur
+     * configure (Rose, Magenta, Violet, Bleu fonce...), insensible a la casse, soit
+     * l'ancien format numerique (1-4) pour compatibilite. Envoie lui-meme un message
+     * d'erreur explicite (listant les couleurs valides) et renvoie null en cas d'echec.
+     */
+    private Integer resolveTeamIndex(CommandSender sender, Arena arena, String input) {
+        int teamCount = arena.getTeamCount();
+
+        for (int i = 0; i < teamCount; i++) {
+            if (manager.getTeamDisplayName(arena, i).equalsIgnoreCase(input)) {
+                return i;
+            }
+        }
+
+        try {
+            int teamNumber = Integer.parseInt(input);
+            if (teamNumber >= 1 && teamNumber <= teamCount) {
+                return teamNumber - 1;
+            }
+        } catch (NumberFormatException ignored) {
+        }
+
+        StringBuilder valid = new StringBuilder();
+        for (int i = 0; i < teamCount; i++) {
+            if (i > 0) valid.append(ChatColor.GRAY).append(", ");
+            valid.append(manager.getTeamColor(arena, i)).append(manager.getTeamDisplayName(arena, i));
+        }
+        sender.sendMessage(ChatColor.RED + "Equipe invalide. Utilise le nom de la couleur : "
+                + valid + ChatColor.RED + ".");
+        return null;
+    }
+
+    /** Variante silencieuse de resolveTeamIndex, pour la tab-completion (pas de message d'erreur). */
+    private int findTeamIndexSilently(Arena arena, String input) {
+        if (arena == null || input == null) return -1;
+        for (int i = 0; i < arena.getTeamCount(); i++) {
+            if (manager.getTeamDisplayName(arena, i).equalsIgnoreCase(input)) {
+                return i;
+            }
+        }
+        try {
+            int teamNumber = Integer.parseInt(input);
+            if (teamNumber >= 1 && teamNumber <= arena.getTeamCount()) {
+                return teamNumber - 1;
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return -1;
+    }
+
     private void handleSetSpawn(CommandSender sender, String[] args) {
         if (!requirePlayerAdmin(sender)) return;
         Player player = (Player) sender;
         if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /p setspawn <nom> <numeroEquipe 1-4> [numeroSpawn]");
+            sender.sendMessage(ChatColor.RED + "Usage: /p setspawn <nom> <couleur> [numeroSpawn]");
+            sender.sendMessage(ChatColor.GRAY + "<couleur> : le nom de l'equipe (ex: Rose, Magenta, Violet, Bleu fonce).");
             sender.sendMessage(ChatColor.GRAY + "Si [numeroSpawn] est omis, un nouveau spawn est ajoute a la suite "
                     + "(utile pour plusieurs joueurs par equipe).");
             return;
@@ -146,18 +198,10 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
         Arena arena = getArenaOrError(sender, args[1]);
         if (arena == null) return;
 
-        int teamNumber;
-        try {
-            teamNumber = Integer.parseInt(args[2]);
-        } catch (NumberFormatException e) {
-            sender.sendMessage(ChatColor.RED + "Le numero d'equipe doit etre un entier entre 1 et 4.");
-            return;
-        }
-        if (teamNumber < 1 || teamNumber > 4) {
-            sender.sendMessage(ChatColor.RED + "Le numero d'equipe doit etre entre 1 et 4.");
-            return;
-        }
-        int teamIndex = teamNumber - 1;
+        Integer teamIndexBoxed = resolveTeamIndex(sender, arena, args[2]);
+        if (teamIndexBoxed == null) return;
+        int teamIndex = teamIndexBoxed;
+        int teamNumber = teamIndex + 1;
 
         int nextAvailable = arena.getSpawnCount(teamIndex) + 1;
         int spawnNumber;
@@ -181,7 +225,7 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
         }
         manager.saveArena(arena);
 
-        String colorName = Arena.spawnColorName(arena.getTeamCount(), teamIndex);
+        String colorName = manager.getTeamDisplayName(arena, teamIndex);
         sender.sendMessage(ChatColor.GREEN + "Spawn #" + spawnNumber + " de l'equipe " + teamNumber
                 + ChatColor.GRAY + " (" + colorName + ")" + ChatColor.GREEN + " "
                 + (wasReplaced ? "remplace" : "defini") + " pour " + arena.getName() + "."
@@ -191,26 +235,25 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
     private void handleDelSpawn(CommandSender sender, String[] args) {
         if (!requireAdmin(sender)) return;
         if (args.length < 4) {
-            sender.sendMessage(ChatColor.RED + "Usage: /p delspawn <nom> <numeroEquipe 1-4> <numeroSpawn>");
+            sender.sendMessage(ChatColor.RED + "Usage: /p delspawn <nom> <couleur> <numeroSpawn>");
+            sender.sendMessage(ChatColor.GRAY + "<couleur> : le nom de l'equipe (ex: Rose, Magenta, Violet, Bleu fonce).");
             return;
         }
         Arena arena = getArenaOrError(sender, args[1]);
         if (arena == null) return;
 
-        int teamNumber;
+        Integer teamIndexBoxed = resolveTeamIndex(sender, arena, args[2]);
+        if (teamIndexBoxed == null) return;
+        int teamIndex = teamIndexBoxed;
+        int teamNumber = teamIndex + 1;
+
         int spawnNumber;
         try {
-            teamNumber = Integer.parseInt(args[2]);
             spawnNumber = Integer.parseInt(args[3]);
         } catch (NumberFormatException e) {
-            sender.sendMessage(ChatColor.RED + "Le numero d'equipe et le numero de spawn doivent etre des entiers.");
+            sender.sendMessage(ChatColor.RED + "Le numero de spawn doit etre un entier.");
             return;
         }
-        if (teamNumber < 1 || teamNumber > 4) {
-            sender.sendMessage(ChatColor.RED + "Le numero d'equipe doit etre entre 1 et 4.");
-            return;
-        }
-        int teamIndex = teamNumber - 1;
 
         boolean ok = arena.removeSpawn(teamIndex, spawnNumber);
         if (!ok) {
@@ -974,9 +1017,9 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(ChatColor.YELLOW + "/p setlobby <nom>");
             sender.sendMessage(ChatColor.YELLOW + "/p setspectator <nom>" + ChatColor.GRAY
                     + " - point d'apparition des spectateurs (a defaut : le lobby)");
-            sender.sendMessage(ChatColor.YELLOW + "/p setspawn <nom> <1-4> [numeroSpawn]" + ChatColor.GRAY
-                    + " - ajoute/remplace un spawn (plusieurs possibles par equipe)");
-            sender.sendMessage(ChatColor.YELLOW + "/p delspawn <nom> <1-4> <numeroSpawn>" + ChatColor.GRAY
+            sender.sendMessage(ChatColor.YELLOW + "/p setspawn <nom> <couleur> [numeroSpawn]" + ChatColor.GRAY
+                    + " - ajoute/remplace un spawn (couleur : Rose, Magenta, Violet, Bleu fonce...)");
+            sender.sendMessage(ChatColor.YELLOW + "/p delspawn <nom> <couleur> <numeroSpawn>" + ChatColor.GRAY
                     + " - supprime un spawn d'equipe");
             sender.sendMessage(ChatColor.YELLOW + "/p spawns <nom>" + ChatColor.GRAY
                     + " - ouvrir le menu visuel des spawns (vitres colorees par equipe)");
@@ -1051,16 +1094,23 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 3 && (args[0].equalsIgnoreCase("setspawn") || args[0].equalsIgnoreCase("delspawn"))) {
-            return List.of("1", "2", "3", "4");
+            Arena arena = manager.get(args[1]);
+            List<String> colorNames = new ArrayList<>();
+            int teamCount = arena != null ? arena.getTeamCount() : 4;
+            for (int i = 0; i < teamCount; i++) {
+                colorNames.add(arena != null ? manager.getTeamDisplayName(arena, i) : "Equipe" + (i + 1));
+            }
+            return colorNames.stream()
+                    .filter(n -> n.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .collect(Collectors.toList());
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setspawn") || args[0].equalsIgnoreCase("delspawn"))) {
             Arena arena = manager.get(args[1]);
             int nextAvailable = 1;
             if (arena != null) {
-                try {
-                    int teamIndex = Integer.parseInt(args[2]) - 1;
+                int teamIndex = findTeamIndexSilently(arena, args[2]);
+                if (teamIndex != -1) {
                     nextAvailable = arena.getSpawnCount(teamIndex) + 1;
-                } catch (NumberFormatException ignored) {
                 }
             }
             return List.of(String.valueOf(nextAvailable));
